@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:reuseu/screens/lapak/lapak_screen.dart';
 import '../../models/transaction_model.dart';
+import 'package:reuseu/screens/setting_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -12,7 +13,7 @@ class ProfileScreen extends StatelessWidget {
       length: 3, // Jumlah tab sekarang menjadi 3
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: _buildAppBar(),
+        appBar: _buildAppBar(context),
         body: Column(
           children: [
             _buildProfileHeader(),
@@ -39,7 +40,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -61,7 +62,14 @@ class ProfileScreen extends StatelessWidget {
             ),
             child: IconButton(
               icon: const Icon(Icons.settings_outlined, color: Colors.black87),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingScreen(),
+                  ),
+                );
+              },
             ),
           ),
         ),

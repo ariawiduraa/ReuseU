@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
+import 'package:reuseu/models/product_model.dart';
 
 class ProductDetailScreen extends StatelessWidget {
-  const ProductDetailScreen({super.key});
+  const ProductDetailScreen({super.key, required Product product});
 
   @override
   Widget build(BuildContext context) {
