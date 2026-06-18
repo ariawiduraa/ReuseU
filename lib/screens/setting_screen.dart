@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'auth/setting_screen.dart';
-import 'auth/profile_screen.dart';
+import 'package:reuseu/screens/setting_screen.dart';
+import 'package:reuseu/screens/profile/profile_screen.dart';
+import 'package:reuseu/screens/auth/login_screen.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({Key? key}) : super(key: key);

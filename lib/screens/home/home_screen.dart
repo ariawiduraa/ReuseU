@@ -105,7 +105,7 @@ class HomeScreen extends StatelessWidget {
           height: 48,
           width: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFF6D4C41),
+            color: const Color.fromARGB(255, 109, 76, 65),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
