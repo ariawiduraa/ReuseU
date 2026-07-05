@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../widgets/product_card.dart';
-import '../../models/product_model.dart';
-import 'package:reuseu/screens/home/product_detail_screen.dart';
+import 'package:reuseu/service/datas_service.dart';
+import 'package:reuseu/dto/datas.dart';
 import 'package:reuseu/screens/lapak/lapak_screen.dart';
+import 'package:reuseu/screens/home/product_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,29 +12,86 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int selectedCategory = 0;
-  int selectedFilter = 0;
+  int _selectedCategory = 0;
+  List<ProductDto> _products = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
+
+  final List<Map<String, dynamic>> _categories = [
+    {'icon': Icons.home_filled, 'label': 'Semua', 'value': null},
+    {'icon': Icons.checkroom, 'label': 'Pakaian', 'value': 'Pakaian'},
+    {'icon': Icons.menu_book, 'label': 'Buku & Alat', 'value': 'Buku & Alat Tulis'},
+    {'icon': Icons.laptop_mac, 'label': 'Elektronik', 'value': 'Elektronik'},
+    {'icon': Icons.chair_alt, 'label': 'Perabotan', 'value': 'Perabotan'},
+    {'icon': Icons.sports_tennis, 'label': 'Olahraga', 'value': 'Olahraga'},
+    {'icon': Icons.more_horiz, 'label': 'Lainnya', 'value': 'Lainnya'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    try {
+      final category = _categories[_selectedCategory]['value'] as String?;
+      final products = category == null
+          ? await ProductService.fetchProducts()
+          : await ProductService.fetchProductsByCategory(category);
+      if (mounted) setState(() => _products = products);
+    } catch (e, stack) {
+      debugPrint('Error loading products: $e\n$stack');
+      if (mounted) {
+        setState(() => _products = []);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat produk: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  List<ProductDto> get _filteredProducts {
+    if (_searchQuery.isEmpty) return _products;
+    return _products
+        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(context),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSearchBar(),
-              const SizedBox(height: 20),
-              _buildBanner(context),
-              const SizedBox(height: 24),
-              _buildCategories(),
-              const SizedBox(height: 24),
-              _buildFilters(),
-              const SizedBox(height: 24),
-              _buildProductGrid(),
-            ],
+      body: RefreshIndicator(
+        color: const Color(0xFF6D4C41),
+        onRefresh: _loadProducts,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSearchBar(),
+                const SizedBox(height: 20),
+                _buildBanner(context),
+                const SizedBox(height: 24),
+                _buildCategories(),
+                const SizedBox(height: 24),
+                _buildProductGrid(),
+              ],
+            ),
           ),
         ),
       ),
@@ -45,71 +102,50 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
-      title: Row(
-        children: const [
-          Icon(Icons.location_on_outlined, color: Colors.grey, size: 20),
-          SizedBox(width: 4),
+      title: const Row(
+        children: [
+          Icon(Icons.storefront_rounded, color: Color(0xFF6D4C41), size: 22),
+          SizedBox(width: 8),
           Text(
-            'Depok, Jawa Barat',
-            style: TextStyle(color: Colors.black87, fontSize: 14),
+            'ReuseU',
+            style: TextStyle(
+              color: Color(0xFF6D4C41),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
-      actions: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black87),
-              onPressed: () {},
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '3',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
   Widget _buildSearchBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari barang yang kamu inginkan...',
-                hintStyle: TextStyle(color: Colors.grey),
-                prefixIcon: Icon(Icons.search, color: Colors.grey),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ),
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() => _searchQuery = v),
+        decoration: InputDecoration(
+          hintText: 'Cari barang yang kamu inginkan...',
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
-      ],
+      ),
     );
   }
 
@@ -118,7 +154,11 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF8D6E63),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6D4C41), Color(0xFF8D6E63)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -126,11 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Text(
             'Mau Wisuda? 🎓',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -139,21 +175,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LapakScreen()),
-              );
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LapakScreen()),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF6D4C41),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               elevation: 0,
             ),
-            child: const Text('Mulai Jual'),
+            child: const Text('Mulai Jual', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -161,40 +193,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategories() {
-    final categories = [
-      {'icon': Icons.home_filled, 'label': 'Semua'},
-      {'icon': Icons.checkroom, 'label': 'Pakaian'},
-      {'icon': Icons.menu_book, 'label': 'Buku & Alat'},
-      {'icon': Icons.laptop_mac, 'label': 'Elektronik'},
-      {'icon': Icons.chair_alt, 'label': 'Perabotan'},
-      {'icon': Icons.sports_tennis, 'label': 'Olahraga'},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Kategori',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const Text('Kategori', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         SizedBox(
           height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
+            itemCount: _categories.length,
             itemBuilder: (context, index) {
-              final cat = categories[index];
-              final isActive = selectedCategory == index;
-
+              final cat = _categories[index];
+              final isActive = _selectedCategory == index;
               return Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
-                    setState(() {
-                      selectedCategory = index;
-                    });
+                    setState(() => _selectedCategory = index);
+                    _loadProducts();
                   },
                   child: Column(
                     children: [
@@ -202,9 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 56,
                         width: 56,
                         decoration: BoxDecoration(
-                          color: isActive
-                              ? const Color(0xFF6D4C41)
-                              : Colors.grey[100],
+                          color: isActive ? const Color(0xFF6D4C41) : Colors.grey[100],
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
@@ -218,9 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isActive ? Colors.black87 : Colors.grey[600],
-                          fontWeight: isActive
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -234,130 +248,184 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildFilters() {
-    final filters = [
-      'Terbaru',
-      'Termurah',
-      'Terdekat',
-      'Seperti Baru',
-      'Harga Turun',
-    ];
-
-    return SizedBox(
-      height: 40,
-
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-
-        itemCount: filters.length,
-
-        itemBuilder: (context, index) {
-          final isSelected = selectedFilter == index;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-
-              onTap: () {
-                setState(() {
-                  selectedFilter = index;
-                });
-              },
-
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF6D4C41)
-                      : Colors.grey[100],
-
-                  borderRadius: BorderRadius.circular(20),
-                ),
-
-                child: Text(
-                  filters[index],
-
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[700],
-
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildProductGrid() {
-    // Memanggil list data dummy dari Product model
-    final products = Product.dummyProducts();
+    final products = _filteredProducts;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
-              'Barang Terbaru',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('Barang Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             Text(
-              '(${products.length})', // Jumlah disesuaikan dinamis dengan panjang list
+              _isLoading ? '...' : '(${products.length})',
               style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: products.length, // Iterasi sebanyak jumlah data produk
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.65,
-          ),
-
-          itemBuilder: (context, index) {
-            final product = products[index];
-
-            return InkWell(
-              borderRadius: BorderRadius.circular(18),
-
-              onTap: () {
-                Navigator.push(
+        if (_isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40),
+              child: CircularProgressIndicator(color: Color(0xFF6D4C41)),
+            ),
+          )
+        else if (products.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    _searchQuery.isNotEmpty
+                        ? 'Tidak ada barang untuk "$_searchQuery"'
+                        : 'Belum ada barang tersedia',
+                    style: TextStyle(color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: products.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.65,
+            ),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              final imageUrl = product.images.isNotEmpty
+                  ? product.images.first.imageUrl
+                  : null;
+              return InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ProductDetailScreen(product: product),
                   ),
-                );
-              },
-
-              child: ProductCard(
-                imagePath: product.image,
-                condition: product.condition,
-                category: product.category,
-                title: product.name,
-                price: product.price,
-                location: product.location,
-              ),
-            );
-          },
-        ),
+                ),
+                child: _buildProductCard(product, imageUrl),
+              );
+            },
+          ),
       ],
+    );
+  }
+
+  Widget _buildProductCard(ProductDto product, String? imageUrl) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Gambar
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Stack(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: imageUrl != null
+                        ? Image.network(imageUrl, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[100],
+                              child: const Icon(Icons.image, color: Colors.grey, size: 40),
+                            ))
+                        : Container(
+                            color: Colors.grey[100],
+                            child: const Icon(Icons.image, color: Colors.grey, size: 40),
+                          ),
+                  ),
+                  // Badge kondisi
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6D4C41),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        product.condition,
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Info
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Rp ${_formatPrice(product.price)}',
+                  style: const TextStyle(
+                    color: Color(0xFF6D4C41),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 12, color: Colors.grey),
+                    const SizedBox(width: 2),
+                    Expanded(
+                      child: Text(
+                        product.location ?? '-',
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatPrice(int price) {
+    return price.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]}.',
     );
   }
 }
