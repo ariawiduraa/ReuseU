@@ -13,7 +13,7 @@ class LapakScreen extends StatefulWidget {
 }
 
 class _LapakScreenState extends State<LapakScreen> {
-  String selectedCategory = 'Pakaian';
+  String selectedCategory = 'Fashion';
   String selectedCondition = 'Seperti Baru';
   bool _isPosting = false;
 
@@ -31,11 +31,11 @@ class _LapakScreenState extends State<LapakScreen> {
   final ImagePicker _picker = ImagePicker();
 
   final List<String> categories = [
-    'Pakaian',
-    'Buku & Alat Tulis',
+    'Fashion',
+    'Alat Tulis',
     'Elektronik',
-    'Perabotan',
-    'Olahraga',
+    'Furnitur',
+    'Dapur',
     'Lainnya',
   ];
   final List<String> conditions = [

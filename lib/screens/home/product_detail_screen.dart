@@ -18,7 +18,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isLoadingWishlist = true;
   bool _isActionLoading = false;
 
-  String get _currentUserId => Supabase.instance.client.auth.currentUser?.id ?? '';
+  String get _currentUserId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
@@ -55,18 +56,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              newStatus
-                  ? 'Ditambahkan ke Wishlist'
-                  : 'Dihapus dari Wishlist',
+              newStatus ? 'Ditambahkan ke Wishlist' : 'Dihapus dari Wishlist',
             ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengubah wishlist: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal mengubah wishlist: $e')));
       }
     } finally {
       if (mounted) setState(() => _isActionLoading = false);
@@ -94,22 +93,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ChatDto finalChat = chat;
       if (chat.seller == null || chat.buyer == null) {
         final chats = await ChatService.fetchChats();
-        finalChat = chats.firstWhere((c) => c.id == chat.id, orElse: () => chat);
+        finalChat = chats.firstWhere(
+          (c) => c.id == chat.id,
+          orElse: () => chat,
+        );
       }
 
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => ChatDetailScreen(chat: finalChat),
-          ),
+          MaterialPageRoute(builder: (_) => ChatDetailScreen(chat: finalChat)),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memulai chat: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memulai chat: $e')));
       }
     } finally {
       if (mounted) setState(() => _isActionLoading = false);
@@ -122,7 +122,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ? widget.product.images.first.imageUrl
         : null;
 
-    final sellerName = widget.product.seller?.fullName ??
+    final sellerName =
+        widget.product.seller?.fullName ??
         widget.product.seller?.username ??
         'Penjual';
 
@@ -154,39 +155,78 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ],
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(color: Colors.white),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
         child: Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _isLoadingWishlist ? null : _toggleWishlist,
-                icon: Icon(
-                  _isWishlisted ? Icons.favorite : Icons.favorite_border,
-                  color: _isWishlisted ? Colors.red : Colors.grey[700],
-                ),
-                label: Text(
-                  _isWishlisted ? "Tersimpan" : "Wishlist",
-                  style: TextStyle(color: Colors.grey[800]),
+              child: SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: _isLoadingWishlist ? null : _toggleWishlist,
+                  icon: Icon(
+                    _isWishlisted ? Icons.favorite : Icons.favorite_border,
+                    color: _isWishlisted ? Colors.red : Colors.grey[700],
+                    size: 18,
+                  ),
+                  label: Text(
+                    _isWishlisted ? "Tersimpan" : "Wishlist",
+                    style: TextStyle(
+                      color: Colors.grey[800],
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              flex: 2,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7B5E57),
-                  disabledBackgroundColor: Colors.grey[400],
-                ),
-                onPressed: _isActionLoading ? null : _startChat,
-                icon: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  "Chat Penjual",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7B5E57),
+                    disabledBackgroundColor: Colors.grey[400],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: _isActionLoading ? null : _startChat,
+                  icon: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    "Chat Penjual",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),
@@ -209,14 +249,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ? Image.network(
                           imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: Colors.grey[200],
-                            child: const Icon(Icons.image, size: 64, color: Colors.grey),
+                            child: const Icon(
+                              Icons.image,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
                           ),
                         )
                       : Container(
                           color: Colors.grey[200],
-                          child: const Icon(Icons.image, size: 64, color: Colors.grey),
+                          child: const Icon(
+                            Icons.image,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
                         ),
                 ),
               ),
@@ -236,7 +284,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 widget.product.name,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -268,7 +319,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     backgroundColor: const Color(0xFF7B5E57),
                     child: Text(
                       sellerName.isNotEmpty ? sellerName[0].toUpperCase() : 'P',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -283,7 +337,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 4),
                         Text(
                           "📍 $sellerLocation",
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),

@@ -22,11 +22,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late final TextEditingController _lokasiController;
 
   final List<String> categories = [
-    'Pakaian',
-    'Buku & Alat Tulis',
+    'Fashion',
+    'Alat Tulis',
     'Elektronik',
-    'Perabotan',
-    'Olahraga',
+    'Furnitur',
+    'Dapur',
     'Lainnya',
   ];
 
