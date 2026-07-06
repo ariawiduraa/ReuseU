@@ -3,6 +3,8 @@ import 'package:reuseu/service/datas_service.dart';
 import 'package:reuseu/dto/datas.dart';
 import 'package:reuseu/screens/lapak/lapak_screen.dart';
 import 'package:reuseu/screens/home/product_detail_screen.dart';
+import 'package:reuseu/screens/notification_screen.dart';
+import 'package:reuseu/service/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,14 +19,17 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  final _notificationService = NotificationService();
+
+  String _selectedSort = 'Terbaru';
 
   final List<Map<String, dynamic>> _categories = [
     {'icon': Icons.home_filled, 'label': 'Semua', 'value': null},
-    {'icon': Icons.checkroom, 'label': 'Pakaian', 'value': 'Pakaian'},
-    {'icon': Icons.menu_book, 'label': 'Buku & Alat', 'value': 'Buku & Alat Tulis'},
+    {'icon': Icons.checkroom, 'label': 'Fashion', 'value': 'Fashion'},
+    {'icon': Icons.edit_note, 'label': 'Alat Tulis', 'value': 'Alat Tulis'},
     {'icon': Icons.laptop_mac, 'label': 'Elektronik', 'value': 'Elektronik'},
-    {'icon': Icons.chair_alt, 'label': 'Perabotan', 'value': 'Perabotan'},
-    {'icon': Icons.sports_tennis, 'label': 'Olahraga', 'value': 'Olahraga'},
+    {'icon': Icons.chair_alt, 'label': 'Furnitur', 'value': 'Furnitur'},
+    {'icon': Icons.soup_kitchen, 'label': 'Dapur', 'value': 'Dapur'},
     {'icon': Icons.more_horiz, 'label': 'Lainnya', 'value': 'Lainnya'},
   ];
 
@@ -32,12 +37,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadProducts();
+    _notificationService.addListener(_onNotificationChange);
+    // Muat data notifikasi dari database saat masuk Beranda
+    _notificationService.fetchNotificationsFromDatabase();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _notificationService.removeListener(_onNotificationChange);
     super.dispose();
+  }
+
+  void _onNotificationChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadProducts() async {
@@ -62,10 +77,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<ProductDto> get _filteredProducts {
-    if (_searchQuery.isEmpty) return _products;
-    return _products
-        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
+    List<ProductDto> list = List.from(_products);
+    if (_searchQuery.isNotEmpty) {
+      list = list
+          .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    if (_selectedSort == 'Terbaru') {
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else if (_selectedSort == 'Terlama') {
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } else if (_selectedSort == 'Harga Terendah') {
+      list.sort((a, b) => a.price.compareTo(b.price));
+    } else if (_selectedSort == 'Harga Tertinggi') {
+      list.sort((a, b) => b.price.compareTo(a.price));
+    }
+
+    return list;
   }
 
   @override
@@ -116,6 +145,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      actions: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF6D4C41), size: 26),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                );
+              },
+            ),
+            if (_notificationService.unreadCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '${_notificationService.unreadCount}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
@@ -255,12 +326,66 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Barang Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(width: 8),
-            Text(
-              _isLoading ? '...' : '(${products.length})',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            Row(
+              children: [
+                const Text('Daftar Barang', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+                Text(
+                  _isLoading ? '...' : '(${products.length})',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            PopupMenuButton<String>(
+              initialValue: _selectedSort,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF6D4C41), width: 1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.sort_rounded, size: 14, color: Color(0xFF6D4C41)),
+                    const SizedBox(width: 4),
+                    Text(
+                      _selectedSort,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6D4C41),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_drop_down, size: 14, color: Color(0xFF6D4C41)),
+                  ],
+                ),
+              ),
+              onSelected: (String value) {
+                setState(() {
+                  _selectedSort = value;
+                });
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'Terbaru',
+                  child: Text('Terbaru'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Terlama',
+                  child: Text('Terlama'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Harga Terendah',
+                  child: Text('Harga Terendah'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Harga Tertinggi',
+                  child: Text('Harga Tertinggi'),
+                ),
+              ],
             ),
           ],
         ),
@@ -349,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     child: imageUrl != null
                         ? Image.network(imageUrl, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, _, _) => Container(
                               color: Colors.grey[100],
                               child: const Icon(Icons.image, color: Colors.grey, size: 40),
                             ))
