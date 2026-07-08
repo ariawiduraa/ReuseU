@@ -36,16 +36,27 @@ class ProductCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: Image.asset(
-                    imagePath,
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: const Center(child: Icon(Icons.image)),
-                    ),
-                  ),
+                  child: imagePath.startsWith('http')
+                      ? Image.network(
+                          imagePath,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: Icon(Icons.image)),
+                          ),
+                        )
+                      : Image.asset(
+                          imagePath,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: Icon(Icons.image)),
+                          ),
+                        ),
                 ),
                 Positioned(
                   top: 8,

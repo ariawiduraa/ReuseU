@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:reuseu/screens/setting_screen.dart';
-import 'package:reuseu/screens/profile/profile_screen.dart';
 import 'package:reuseu/screens/auth/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SettingScreen extends StatefulWidget {
-  const SettingScreen({Key? key}) : super(key: key);
+  const SettingScreen({super.key});
 
   @override
   State<SettingScreen> createState() => _SettingScreenState();
@@ -18,9 +17,7 @@ class _SettingScreenState extends State<SettingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF5F5F5,
-      ), // Latar abu-abu terang agar card pengaturan lebih menonjol
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: _buildAppBar(context),
       body: SingleChildScrollView(
         child: Padding(
@@ -38,9 +35,9 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   _buildDivider(),
                   _buildListTile(
-                    icon: Icons.school_outlined, // Icon topi toga/kampus
+                    icon: Icons.school_outlined,
                     title: 'Universitas & Alamat',
-                    subtitle: 'UNDIKSHA, Singaraja', // Dummy data
+                    subtitle: 'UNDIKSHA, Singaraja',
                     onTap: () {},
                   ),
                   _buildDivider(),
@@ -192,7 +189,7 @@ class _SettingScreenState extends State<SettingScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -213,7 +210,7 @@ class _SettingScreenState extends State<SettingScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF6D4C41).withOpacity(0.1),
+          color: const Color(0xFF6D4C41).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: const Color(0xFF6D4C41), size: 20),
@@ -245,7 +242,7 @@ class _SettingScreenState extends State<SettingScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: const Color(0xFF6D4C41).withOpacity(0.1),
+          color: const Color(0xFF6D4C41).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: const Color(0xFF6D4C41), size: 20),
@@ -266,7 +263,6 @@ class _SettingScreenState extends State<SettingScreen> {
     return const Divider(height: 1, thickness: 1, color: Color(0xFFF5F5F5));
   }
 
-  // Dialog Konfirmasi Logout
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -292,13 +288,17 @@ class _SettingScreenState extends State<SettingScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
-                // Menghapus semua route sebelumnya dan kembali ke LoginScreen
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
+              onPressed: () async {
+                // Sign out dari Supabase
+                await Supabase.instance.client.auth.signOut();
+
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
               },
               child: const Text(
                 'Keluar',
