@@ -29,8 +29,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _user?.userMetadata?['full_name'] as String? ??
       _user?.email?.split('@').first ??
       'Pengguna';
-  String get _username =>
-      '@${_user?.userMetadata?['username'] as String? ?? _user?.email?.split('@').first ?? 'user'}';
+  // 'username' di Supabase menyimpan NIM mahasiswa (lihat register_screen.dart)
+  String get _nim =>
+      _user?.userMetadata?['username'] as String? ?? '-';
   String get _location =>
       _user?.userMetadata?['location'] as String? ?? 'Lokasi tidak diset';
 
@@ -233,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _username,
+                  'NIM: $_nim',
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -15,7 +15,7 @@ class ProductService {
         .from(Endpoints.tableProducts)
         .select('''
           *,
-          profiles!seller_id ( id, username, full_name, avatar_url, location ),
+          profiles!seller_id ( id, username, full_name, avatar_url, location, phone ),
           product_images ( id, product_id, image_url, order_index )
         ''')
         .eq('status', 'available')
@@ -28,12 +28,13 @@ class ProductService {
 
   /// Ambil produk berdasarkan kategori
   static Future<List<ProductDto>> fetchProductsByCategory(
-      String category) async {
+    String category,
+  ) async {
     final data = await _supabase
         .from(Endpoints.tableProducts)
         .select('''
           *,
-          profiles!seller_id ( id, username, full_name, avatar_url, location ),
+          profiles!seller_id ( id, username, full_name, avatar_url, location, phone ),
           product_images ( id, product_id, image_url, order_index )
         ''')
         .eq('status', 'available')
@@ -94,11 +95,17 @@ class ProductService {
 
     // Insert semua gambar ke tabel product_images
     if (imageUrls.isNotEmpty) {
-      final imageRows = imageUrls.asMap().entries.map((e) => {
-        'product_id': product.id,
-        'image_url': e.value,
-        'order_index': e.key,
-      }).toList();
+      final imageRows = imageUrls
+          .asMap()
+          .entries
+          .map(
+            (e) => {
+              'product_id': product.id,
+              'image_url': e.value,
+              'order_index': e.key,
+            },
+          )
+          .toList();
       await _supabase.from(Endpoints.tableProductImages).insert(imageRows);
     }
 
@@ -118,7 +125,10 @@ class ProductService {
         .uploadBinary(
           storagePath,
           bytes,
-          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+          fileOptions: const FileOptions(
+            contentType: 'image/jpeg',
+            upsert: true,
+          ),
         );
 
     return _supabase.storage
@@ -133,14 +143,14 @@ class ProductService {
         .from(Endpoints.tableProductImages)
         .delete()
         .eq('product_id', productId);
-    await _supabase
-        .from(Endpoints.tableProducts)
-        .delete()
-        .eq('id', productId);
+    await _supabase.from(Endpoints.tableProducts).delete().eq('id', productId);
   }
 
   /// Update status produk (available / sold)
-  static Future<void> updateProductStatus(String productId, String status) async {
+  static Future<void> updateProductStatus(
+    String productId,
+    String status,
+  ) async {
     await _supabase
         .from(Endpoints.tableProducts)
         .update({'status': status})
@@ -185,7 +195,7 @@ class WishlistService {
           *,
           products (
             *,
-            profiles!seller_id ( id, username, full_name, avatar_url ),
+            profiles!seller_id ( id, username, full_name, avatar_url, location, phone ),
             product_images ( id, product_id, image_url, order_index )
           )
         ''')
@@ -223,9 +233,10 @@ class WishlistService {
           .eq('product_id', productId);
       return false;
     } else {
-      await _supabase
-          .from(Endpoints.tableWishlists)
-          .insert({'user_id': userId, 'product_id': productId});
+      await _supabase.from(Endpoints.tableWishlists).insert({
+        'user_id': userId,
+        'product_id': productId,
+      });
       return true;
     }
   }
@@ -287,11 +298,7 @@ class ChatService {
 
     final result = await _supabase
         .from(Endpoints.tableMessages)
-        .insert({
-          'chat_id': chatId,
-          'sender_id': userId,
-          'content': content,
-        })
+        .insert({'chat_id': chatId, 'sender_id': userId, 'content': content})
         .select()
         .single();
 
@@ -349,7 +356,8 @@ class ChatService {
           ),
           callback: (payload) {
             final message = MessageDto.fromJson(
-                payload.newRecord as Map<String, dynamic>);
+              payload.newRecord as Map<String, dynamic>,
+            );
             onNewMessage(message);
           },
         )
@@ -479,10 +487,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
   /// Logout
