@@ -299,15 +299,3 @@ Kontribusi sangat disambut! Berikut langkah-langkahnya:
 5. Buat **Pull Request**
 
 ---
-
-## 📄 Lisensi
-
-Project ini menggunakan lisensi [MIT](LICENSE).
-
----
-
-## 👨‍💻 Developer
-
-Dibuat dengan ❤️ oleh **ariawiduraa** dan tim.
-
-> *"Barang lama, nilai baru — untuk sesama mahasiswa."*
