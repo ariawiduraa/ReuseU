@@ -147,10 +147,10 @@ class ProductImageDto {
 
   factory ProductImageDto.fromJson(Map<String, dynamic> json) {
     return ProductImageDto(
-      id: json['id'] as String,
-      productId: json['product_id'] as String,
-      imageUrl: json['image_url'] as String,
-      orderIndex: json['order_index'] as int,
+      id: json['id'] as String? ?? '',
+      productId: json['product_id'] as String? ?? '',
+      imageUrl: json['image_url'] as String? ?? '',
+      orderIndex: json['order_index'] as int? ?? 0,
     );
   }
 

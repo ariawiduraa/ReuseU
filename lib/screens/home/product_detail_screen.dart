@@ -18,6 +18,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isLoadingWishlist = true;
   bool _isActionLoading = false;
 
+  // Image slider
+  final PageController _imagePageController = PageController();
+  int _currentImageIndex = 0;
+
   String get _currentUserId =>
       Supabase.instance.client.auth.currentUser?.id ?? '';
 
@@ -25,6 +29,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _checkWishlistStatus();
+  }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkWishlistStatus() async {
@@ -292,9 +302,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = widget.product.images.isNotEmpty
-        ? widget.product.images.first.imageUrl
-        : null;
+    // Sort gambar berdasarkan order_index
+    final images = [...widget.product.images]
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
     final sellerName =
         widget.product.seller?.fullName ??
@@ -411,37 +421,113 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // FOTO BESAR
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 370,
-                  child: imageUrl != null
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
-                            color: Colors.grey[200],
-                            child: const Icon(
-                              Icons.image,
-                              size: 64,
-                              color: Colors.grey,
+            // FOTO SLIDER
+            Stack(
+              children: [
+                // PageView gambar
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 370,
+                      child: images.isEmpty
+                          ? Container(
+                              color: Colors.grey[200],
+                              child: const Icon(
+                                Icons.image,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                            )
+                          : PageView.builder(
+                              controller: _imagePageController,
+                              itemCount: images.length,
+                              onPageChanged: (index) {
+                                setState(() => _currentImageIndex = index);
+                              },
+                              itemBuilder: (context, index) {
+                                return Image.network(
+                                  images[index].imageUrl,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, progress) {
+                                    if (progress == null) return child;
+                                    return Container(
+                                      color: Colors.grey[100],
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF7B5E57),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.image,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                        )
-                      : Container(
-                          color: Colors.grey[200],
-                          child: const Icon(
-                            Icons.image,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                        ),
+                    ),
+                  ),
                 ),
-              ),
+
+                // Counter badge kanan atas (misal: 2/5)
+                if (images.length > 1)
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_currentImageIndex + 1}/${images.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Dot indicator bawah
+                if (images.length > 1)
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(images.length, (index) {
+                        final isActive = index == _currentImageIndex;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin:
+                              const EdgeInsets.symmetric(horizontal: 3),
+                          width: isActive ? 20 : 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 18),
             // KATEGORI & KONDISI
